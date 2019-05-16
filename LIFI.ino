@@ -24,19 +24,16 @@ const int bp1 = 18;
 LiquidCrystal lcd( 12,11, 5,4,3,2);
 
 // les parrametres de fonctionement
-const double R9 = 10000.0;
-const double ConvR8 = 5.0/1023.0; 
-double  vo, R8, iled = 400;
 unsigned long period = 25;
 String message = "";
 int dt =period;
-const int tfin = period*6;
-const int t0 = 4*period;
+const int tfin = period*4;
+const int t0 = 3*period;
 const int t1 = 2*period;
 
 int countdemod = 0;
 int tdemod = 0;
-boolean premierDemod = true;
+boolean premierDemod = false;
 char cdemod = (char)0;
 boolean td =true;
 
@@ -49,13 +46,15 @@ void setup() {
   pinMode(bp1, INPUT);
   lcd.begin(16,2);
   lcd.clear ();
+  Timer1.initialize();
+  Timer1.setPeriod(10*period);
+  Timer1.attachInterrupt(fintransmission);
   attachInterrupt(digitalPinToInterrupt(bp1), initEcran, RISING);
   analogComparator.setOn(INTERNAL_REFERENCE, A0);
   analogComparator.enableInterrupt(demodulation, FALLING);
   tdemod = millis(); // init
   lcd.print("King of LIFI");  
   Serial.println("King of LIFI");
-  /**/
   lcd.setCursor(0,1);
 }
 
@@ -65,7 +64,6 @@ void loop() {
     String mesgEntrant = Serial.readString();
     lcd.clear();
     lcd.print(mesgEntrant);
-    lcd.setCursor(0,1);
     digitalWrite(ledVerte, LOW);
     
     for(int i = 0; i< mesgEntrant.length(); i++){
@@ -92,15 +90,17 @@ void loop() {
       delay(tfin);
     }
     digitalWrite(ledRouge, HIGH);  
-    delay(dt/2);      
+    delay(dt);      
     digitalWrite(ledRouge, LOW);      
   }
 }
 
 void fintransmission(){
-      digitalWrite(ledVerte, HIGH);
+      //digitalWrite(ledVerte, HIGH);
+      lcd.setCursor(0,1);
       lcd.print(message);
       premierDemod = true;
+      Timer1.stop();
 }
 
 void initEcran(){
@@ -109,27 +109,27 @@ void initEcran(){
 }
 
 void demodulation(){
-  if(!premierDemod){
-    if( abs(millis() -tdemod - dt - t1) <= period/2){
+  if(premierDemod){
+    if( millis() -tdemod - dt <= t1+period/2){
       cdemod = cdemod | (1 << countdemod);
       countdemod++;
-      Serial.println(millis() -tdemod - dt);
     }else{
-      if( abs(millis() -tdemod - dt - t0) <= period/2){
+      if( millis() -tdemod - dt <= t0+period/2){
         cdemod = (cdemod & ~(1 << countdemod));
         countdemod++;
-        Serial.println(millis() -tdemod - dt);
       }else{
-        if( abs(millis() -tdemod - dt - tfin) <= period/2){
-            Serial.println(cdemod);
-            message = message +cdemod;
+        if( millis() -tdemod - dt <= tfin+period/2){
+            message = message + cdemod;
             countdemod = 0;
             cdemod =0;
         }
       }
     }
   }else{
-    premierDemod = false;
+    premierDemod = true;
+    Serial.print((millis() -tdemod - dt));
   }
   tdemod = millis();
+  Timer1.stop();
+  Timer1.start();
 }
