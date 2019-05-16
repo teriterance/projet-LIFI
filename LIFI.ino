@@ -65,7 +65,6 @@ void loop() {
     lcd.clear();
     lcd.print(mesgEntrant);
     digitalWrite(ledVerte, LOW);
-    
     for(int i = 0; i< mesgEntrant.length(); i++){
       char c = mesgEntrant[i];
       int b = 0xb00000001;
@@ -96,11 +95,10 @@ void loop() {
 }
 
 void fintransmission(){
-      //digitalWrite(ledVerte, HIGH);
+      digitalWrite(ledVerte, HIGH);
       lcd.setCursor(0,1);
       lcd.print(message);
       premierDemod = true;
-      Timer1.stop();
 }
 
 void initEcran(){
